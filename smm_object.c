@@ -76,6 +76,10 @@ int smmObj_getNodeType(int node_nr)
 {
       return (smmObj_board[node_nr].type);
 }
+int smmObj_getNodeCredit(int node_nr)
+{
+      return (smmObj_board[node_nr].credit);
+}
 
 int smmObj_getNodeEnergy(int node_nr)
 {
