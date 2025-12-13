@@ -32,7 +32,7 @@ static char smmNodeName[MAX_NODETYPE][MAX_CHARNAME] = {
        "festival"
 };
 
-static int smm_nodeNr=0;
+static int smmObj_nodeNr=0;
 //structure type definition
 #if 0
 static char smm_name[MAX_NODENR][MAX_CHARNAME];
@@ -48,18 +48,16 @@ typedef struct{
 	int energy;	
 } smmObj_board_t;
 
-static  smmObj_board_t smmObj_board[MAXNODENR];
-
-
+static  smmObj_board_t smmObj_board[MAX_NODENR];
 
 
 //object generation
 int smmObj_genNode(char* name, int type, int credit, int energy)
 {
-    strcpy(smmObj_board[smm_nodeNr].name,name);
-    smmObj_board[smm_nodeNr].type = type;
-    smmObj_board[smm_nodeNr]credit = credit;
-    smmObj_board[smm_nodeNr].energy = energy;
+    strcpy(smmObj_board[smmObj_nodeNr].name, name);
+    smmObj_board[smmObj_nodeNr].type = type;
+    smmObj_board[smmObj_nodeNr].credit = credit;
+    smmObj_board[smmObj_nodeNr].energy = energy;
     
     smmObj_nodeNr++;
     
@@ -86,7 +84,7 @@ int smmObj_getNodeEnergy(int node_nr)
 
 char* smmObj_getTypeName(int node_type)
 {
-      return (smmObj_nodeName[node_type]);
+      return smmNodeName[node_type];
 }
 
 
