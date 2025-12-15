@@ -9,7 +9,7 @@
 #include "smm_database.h"
 
 #define LIST_END            -1
-#define MAX_LIST            LISTNO_OFFSET_GRADE+MAX_PLAYER
+#define MAX_LIST            20
 
 //node definition for linked list
 typedef struct node{
