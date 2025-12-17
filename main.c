@@ -296,10 +296,11 @@ int main(int argc, const char * argv[]) {
         void* ptr;
         //printf("%s %i %i %i\n", name, type, credit, energy);
         ptr = smmObj_genObject(name, SMMNODE_OBJTYPE_BOARD,type, credit, energy,0);
-        smm_board_nr=smmdb_addTail(LISTNO_NODE, ptr); 
+        smmdb_addTail(LISTNO_NODE, ptr);
 
     }
     fclose(fp);
+    smm_board_nr = smmdb_len(LISTNO_NODE);
     printf("Total number of board nodes : %i\n", smm_board_nr);
     
     //2. food card config 
@@ -314,10 +315,11 @@ int main(int argc, const char * argv[]) {
     {
         //store the parameter set
         void* ptr = smmObj_genObject(name, SMMNODE_OBJTYPE_FOOD, 0, 0, energy, 0);
-        smm_food_nr = smmdb_addTail(LISTNO_FOODCARD, ptr);
+        smmdb_addTail(LISTNO_FOODCARD, ptr);
         
     }
     fclose(fp);
+    smm_food_nr = smmdb_len(LISTNO_FOODCARD);
     printf("Total number of food cards : %i\n", smm_food_nr);
 
     
@@ -334,9 +336,10 @@ int main(int argc, const char * argv[]) {
     {
         //store the parameter set
         void* ptr = smmObj_genObject(name, SMMNODE_OBJTYPE_FEST, 0, 0, 0, 0);
-        smm_festival_nr = smmdb_addTail(LISTNO_FESTCARD, ptr);
+        smmdb_addTail(LISTNO_FESTCARD, ptr);
     }
     fclose(fp);
+    smm_festival_nr = smmdb_len(LISTNO_FESTCARD);
     printf("Total number of festival cards : %i\n", smm_festival_nr);
      
     //2. Player configuration ---------------------------------------------------------------------------------
