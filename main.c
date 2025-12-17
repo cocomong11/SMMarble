@@ -152,7 +152,7 @@ void printGrades(int player)
 int rolldie(int player)
 {
     char c;
-    printf(" Press any key to roll a die (press g to see grade): ");
+    printf(" Press any key to roll a die: ");
     c = getchar();
     fflush(stdin);
 
@@ -182,27 +182,33 @@ void actionNode(int player)
    switch(type) 
     {
         case SMMNODE_TYPE_LECTURE:
-        	//이미 수강한 강의인지 확인 
-            if (findGrade(player, smmObj_getObjectName(ptr)) == NULL) 
-            {
-            	//에너지 충분한지 확인 
-                if (smm_players[player].energy >= energy) 
-                {
-                    smm_players[player].credit += credit;
-                    smm_players[player].energy -= energy;
-                    grade = rand() % SMMNODE_MAX_GRADE;
-
-                    gradePtr = smmObj_genObject(smmObj_getObjectName(ptr), SMMNODE_OBJTYPE_GRADE, type, credit, energy, grade);
-                    smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
-
-                    printf("[Lecture] Took Class '%s'. Grade: %s, Energy consumed: %i\n", 
-                           smmObj_getObjectName(ptr), smmObj_getGradeName(grade), energy);
-                }
-                else 
-                {
-                    printf("[Lecture] Not enough energy to take this class! (Required: %i)\n", energy);
-                }
-            }
+    		if (findGrade(player, smmObj_getObjectName(ptr)) == NULL) 
+    		{
+        		if (smm_players[player].energy >= energy) 
+        		{
+            //사용자에게 수강 여부 묻기
+            		char choice;
+            		printf("Do you want to take this lecture? (y/n): ");
+            		scanf(" %c", &choice);
+            
+            		if (choice == 'y' || choice == 'Y') {
+                		smm_players[player].credit += credit;
+                		smm_players[player].energy -= energy;
+               	 		grade = rand() % SMMNODE_MAX_GRADE;
+                	
+                		gradePtr = smmObj_genObject(smmObj_getObjectName(ptr), SMMNODE_OBJTYPE_GRADE, type, credit, energy, grade);
+                		smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
+                
+                		printf("[Lecture] Took Class '%s'. Grade: %s\n", smmObj_getObjectName(ptr), smmObj_getGradeName(grade));
+            		} else {
+                		printf("[Lecture] You dropped the class.\n");
+            		}
+        		}
+        		else 
+        		{
+            		printf("[Lecture] Not enough energy. (Required: %i)\n", energy);
+        		}
+    		}
             else 
             {
                 printf("[Lecture] Already taken this class.\n");
