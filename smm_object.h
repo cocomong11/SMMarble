@@ -54,7 +54,7 @@
 #define SMMNODE_GRADE_DM  11  // D-
 #define SMMNODE_GRADE_F   12  // F
 #define SMMNODE_MAX_GRADE 13
-
+#define SMMNODE_TYPE_MAX 7
 
 
 //object generation
@@ -66,8 +66,7 @@ int smmObj_getObjectType(void* ptr);
 int smmObj_getObjectEnergy(void *ptr);
 int smmObj_getObjectCredit(void* ptr);
 int smmObj_getObjectGrade(void*ptr);
-
-//element to string
+char* smmObj_getGradeName(int grade);
 char* smmObj_getTypeName(int type);
 
 

@@ -23,6 +23,7 @@ static int smm_board_nr;
 static int smm_food_nr;
 static int smm_festival_nr;
 static int smm_player_nr;
+#define EXPERIMENT 3
 
 typedef struct{
 	char name[MAX_CHARNAME];
@@ -30,6 +31,8 @@ typedef struct{
 	int credit;
 	int energy;
 	int flag_graduated;
+	int experimenting;
+	int experiment_threshold;
 } smm_player_t;
 
 smm_player_t *smm_players;
@@ -73,16 +76,23 @@ int isGraduated(void)
 void goForward(int player, int step)
 { //make player go "step" steps on the board (check if player is graduated)
     int i;
-    void *ptr;
-    ptr=smmdb_getData(LISTNO_NODE,smm_players[player].pos);
+    void *ptr;  
+    ptr = smmdb_getData(LISTNO_NODE, smm_players[player].pos);
     printf("start from %i(%s) (%i)\n", smm_players[player].pos,
-                                         smmObj_getObjectName(ptr), step);
-    for (i=0;i<step;i++)
+                                     smmObj_getObjectName(ptr), step);  
+    for (i=0; i<step; i++)
     {
-        smm_players[player].pos= (smm_players[player].pos+ 1)%smm_board_nr;
+        smm_players[player].pos = (smm_players[player].pos + 1) % smm_board_nr;
         void* nextPtr = smmdb_getData(LISTNO_NODE, smm_players[player].pos);
+        if (smmObj_getObjectType(nextPtr) == SMMNODE_TYPE_HOME) 
+        {
+            int recharge = smmObj_getObjectEnergy(nextPtr);
+            smm_players[player].energy += recharge;
+            printf("  -> Energy recharged! (+%i) -> Current Energy: %i\n", 
+                   recharge, smm_players[player].energy);
+        }
         printf("  => moved to %i(%s)\n", smm_players[player].pos,
-                                         smmObj_getObjectName(nextPtr));
+                                     smmObj_getObjectName(nextPtr));
     }
 }
 
@@ -92,6 +102,10 @@ void printPlayerStatus(void)
      for (i=0;i<smm_player_nr;i++)
      {
      	void *ptr=smmdb_getData(LISTNO_NODE,smm_players[i].pos);
+     	char statusMsg[50] = "";
+        if (smm_players[i].experimenting) {
+            sprintf(statusMsg, " [Experimenting]");
+        }
          printf("%s - position:%i(%s), credit:%i, energy:%i\n",
                     smm_players[i].name, smm_players[i].pos, smmObj_getObjectName(ptr), smm_players[i].credit, smm_players[i].energy);
      }
@@ -115,7 +129,19 @@ void generatePlayers(int n, int initEnergy) //generate a new player
          fflush(stdin); 
      }
 }
+void printGrades(int player)
+{
+    int i;
+    void *ptr;
+    int count = smmdb_len(LISTNO_OFFSET_GRADE + player);
+	printf("Player %s's Grade\n", smm_players[player].name);
 
+    for (i = 0; i < count; i++)
+    {
+        ptr = smmdb_getData(LISTNO_OFFSET_GRADE + player, i);
+        printf("%s : %s (%i)\n", smmObj_getObjectName(ptr), smmObj_getGradeName(smmObj_getObjectGrade(ptr)), smmObj_getObjectCredit(ptr));
+    }
+}
 int rolldie(int player)
 {
     char c;
@@ -141,48 +167,97 @@ void actionNode(int player)
     
     int grade;
     void *gradePtr;
+    void *cardPtr;
+    int randIndex;
+    int i, labIndex = -1;
     printf(" --> player%i pos :%i, type : %s, credit : %i, energy : %i\n",
        player, smm_players[player].pos, smmObj_getTypeName(type), credit, energy);
 
 	
-    switch(type)
+   switch(type) 
     {
-    	case SMMNODE_TYPE_LECTURE:
-    		if(findGrade(player, smmObj_getObjectName(ptr))==NULL)
+        case SMMNODE_TYPE_LECTURE:
+            if (findGrade(player, smmObj_getObjectName(ptr)) == NULL) 
             {
-    		smm_players[player].credit+=credit;
-    		smm_players[player].energy-=energy;
-    		grade= rand()%SMMNODE_MAX_GRADE;
+                if (smm_players[player].energy >= energy) 
+                {
+                    smm_players[player].credit += credit;
+                    smm_players[player].energy -= energy;
+                    grade = rand() % SMMNODE_MAX_GRADE;
 
-    		gradePtr= smmObj_genObject(smmObj_getObjectName(ptr),SMMNODE_OBJTYPE_GRADE, type,credit,energy,grade);
-			smmdb_addTail(LISTNO_OFFSET_GRADE+player,gradePtr);
-			}
-    		break;
-    		
+                    gradePtr = smmObj_genObject(smmObj_getObjectName(ptr), SMMNODE_OBJTYPE_GRADE, type, credit, energy, grade);
+                    smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
+
+                    printf("[Lecture] Took Class '%s'. Grade: %s, Energy consumed: %i\n", 
+                           smmObj_getObjectName(ptr), smmObj_getGradeName(grade), energy);
+                }
+                else 
+                {
+                    printf("[Lecture] Not enough energy to take this class! (Required: %i)\n", energy);
+                }
+            }
+            else 
+            {
+                printf("[Lecture] Already taken this class.\n");
+            }
+            break;      
+   
     	case SMMNODE_TYPE_RESTAURANT:
     		smm_players[player].energy+=energy;
+    		printf("[Restaurant] Energy recharged (+%i) -> %i\n", energy, smm_players[player].energy);
     		break;
     		
     	case SMMNODE_TYPE_LABORATORY:
-    		break;	
+    		printf("[Laboratory] You are in the lab.\n");
+            break;
     		
     	case SMMNODE_TYPE_HOME:
     		smm_players[player].energy+=energy;
-    		if(smm_players[player].credit<=GRADUATE_CREDIT)
+    		printf("[Home] Energy recharged.\n");
+    		if(smm_players[player].credit>=GRADUATE_CREDIT)
 			{
+				printf("CONGRATULATIONS! Player %s Graduated!\n", smm_players[player].name);
     			smm_players[player].flag_graduated=1;
 			}
     		break;
     		
     	case SMMNODE_TYPE_GOTOLAB:
-    		break;
+        labIndex = -1;
+        for(i=0; i<smm_board_nr; i++) {
+            void* nPtr = smmdb_getData(LISTNO_NODE, i);
+            if (smmObj_getObjectType(nPtr) == SMMNODE_TYPE_LABORATORY) {
+                labIndex = i;
+                break;
+            }
+        }
+        if (labIndex != -1) {
+            smm_players[player].pos = labIndex;
+            smm_players[player].experimenting = 1;
+            smm_players[player].experiment_threshold = (rand() % MAX_DIE) + 1; 
+            
+            printf("[Experiment] Moving to Laboratory (Index %i). You are now experimenting.\n", labIndex);
+            printf("[Experiment] Success threshold randomly set: %i\n", smm_players[player].experiment_threshold);
+        }
+        break;
     		
-    	case SMMNODE_TYPE_FOODCHANGE:
-    		break;
+    	case SMMNODE_TYPE_FOODCHANGE: 
+            if (smm_food_nr > 0) {
+                randIndex = rand() % smm_food_nr;
+                cardPtr = smmdb_getData(LISTNO_FOODCARD, randIndex);
+                int foodEnergy = smmObj_getObjectEnergy(cardPtr);
+                smm_players[player].energy += foodEnergy;
+                printf("[FoodChance] %s! Energy recharged (+%i) -> %i\n", 
+                       smmObj_getObjectName(cardPtr), foodEnergy, smm_players[player].energy);
+            }
+            break;
     		
     	case SMMNODE_TYPE_FESTIVAL:
-    		break;
-    		
+            if (smm_festival_nr > 0) {
+                randIndex = rand() % smm_festival_nr;
+                cardPtr = smmdb_getData(LISTNO_FESTCARD, randIndex);
+                printf("[Festival] Mission: %s\n", smmObj_getObjectName(cardPtr));
+            }
+            break;
         default:
             break;
     }
@@ -219,7 +294,7 @@ int main(int argc, const char * argv[]) {
     {
         //store the parameter set
         void* ptr;
-        printf("%s %i %i %i\n", name, type, credit, energy);
+        //printf("%s %i %i %i\n", name, type, credit, energy);
         ptr = smmObj_genObject(name, SMMNODE_OBJTYPE_BOARD,type, credit, energy,0);
         smm_board_nr=smmdb_addTail(LISTNO_NODE, ptr); 
 
@@ -227,8 +302,6 @@ int main(int argc, const char * argv[]) {
     fclose(fp);
     printf("Total number of board nodes : %i\n", smm_board_nr);
     
-    
-#if 0
     //2. food card config 
     if ((fp = fopen(FOODFILEPATH,"r")) == NULL)
     {
@@ -237,9 +310,11 @@ int main(int argc, const char * argv[]) {
     }
     
     printf("\n\nReading food card component......\n");
-    while () //read a food parameter set
+    while (fscanf(fp, "%s %i", name, &energy) == 2) //read a food parameter set
     {
         //store the parameter set
+        void* ptr = smmObj_genObject(name, SMMNODE_OBJTYPE_FOOD, 0, 0, energy, 0);
+        smm_food_nr = smmdb_addTail(LISTNO_FOODCARD, ptr);
         
     }
     fclose(fp);
@@ -255,15 +330,15 @@ int main(int argc, const char * argv[]) {
     }
     
     printf("\n\nReading festival card component......\n");
-    while () //read a festival card string
+    while (fscanf(fp, "%s", name) == 1) 
     {
         //store the parameter set
+        void* ptr = smmObj_genObject(name, SMMNODE_OBJTYPE_FEST, 0, 0, 0, 0);
+        smm_festival_nr = smmdb_addTail(LISTNO_FESTCARD, ptr);
     }
     fclose(fp);
     printf("Total number of festival cards : %i\n", smm_festival_nr);
-    
-#endif    
-    
+     
     //2. Player configuration ---------------------------------------------------------------------------------
     
     do
@@ -295,16 +370,46 @@ int main(int argc, const char * argv[]) {
         
         //4-2. die rolling (if not in experiment)
         die_result = rolldie(turn);
+        printf("[Dice] Rolled: %i\n", die_result);
+        if (smm_players[turn].experimenting == 1) {
+        void* labPtr = smmdb_getData(LISTNO_NODE, smm_players[turn].pos);
+        int reqEnergy = smmObj_getObjectEnergy(labPtr);
         
+        smm_players[turn].energy -= reqEnergy; 
+        printf("[Experiment] Trying to escape(Energy -%i -> %i)\n", reqEnergy, smm_players[turn].energy);
+
+        if (die_result >= smm_players[turn].experiment_threshold) {
+            printf("[Experiment] You escaped the lab.\n");
+            smm_players[turn].experimenting = 0;
+            goForward(turn, die_result);
+            actionNode(turn);
+        }
+        else {
+            printf("[Experiment] FAIL. Stuck in lab.\n");
+        }
+    }
         //4-3. go forward
+        else {
         goForward(turn, die_result);
+        actionNode(turn);
+    }
         //pos = pos + 2;
         
 		//4-4. take action at the destination node of the board
-        actionNode(turn);
-        
+        if (isGraduated()) {
+            break;
+        }
         //4-5. next turn
         turn = (turn + 1)%smm_player_nr;
+    }
+    
+    int i;
+    printf("GAME OVER!\n");
+    for(i=0; i<smm_player_nr; i++) {
+        if(smm_players[i].flag_graduated) {
+            printf("Winner is %s\n", smm_players[i].name);
+            printGrades(i);
+        }
     }
 	free(smm_players);
     system("PAUSE");
