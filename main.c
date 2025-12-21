@@ -175,8 +175,8 @@ void actionNode(int player)
     int randIndex;
     int i, labIndex = -1;
     
-    printf(" --> player%i pos :%i, type : %s, credit : %i, energy : %i\n",
-       player, smm_players[player].pos, smmObj_getTypeName(type), credit, energy);
+    printf(" --> %s pos :%i, type : %s, credit : %i, energy : %i\n",
+       smm_players[player].name, smm_players[player].pos, smmObj_getTypeName(type), credit, energy);
 
 	
    switch(type) 
@@ -389,7 +389,7 @@ int main(int argc, const char * argv[]) {
         
         //3-2. die rolling (if not in experiment)
         die_result = rolldie(turn);
-        printf("[Dice] Rolled: %i\n", die_result);
+        printf("[%s's Dice] Rolled: %i\n", smm_players[turn].name, die_result);
         if (smm_players[turn].experimenting == 1) {
         	void* labPtr = smmdb_getData(LISTNO_NODE, smm_players[turn].pos);
         	int reqEnergy = smmObj_getObjectEnergy(labPtr);
