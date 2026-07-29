@@ -29,7 +29,7 @@
 
 <br>
 
-## 🧩 설계 포인트
+## 설계 포인트
 
 - **데이터 캡슐화 (Data Encapsulation)**: 게임 객체(노드·음식카드·축제카드·수강 이력)를 하나의 구조체 형태로 표현하고, 구조체 정의와 접근은 `smm_object.c` 내부로 한정했습니다.
 - **모듈 간 경계 분리**: 파일 간 전역 변수 공유(`extern`)를 사용하지 않고, linked list는 `smm_database.c` 내부에서만 접근하며 다른 파일은 `smm_database.h`에 선언된 함수를 통해서만 데이터에 접근합니다.
@@ -39,7 +39,7 @@
 
 <br>
 
-## 📁 파일 구조
+## 파일 구조
 
 ```
 SMMarble/
@@ -65,7 +65,7 @@ SMMarble/
 
 <br>
 
-## ⚙️ 빌드 & 실행
+## 빌드 & 실행
 
 ```bash
 # gcc 사용 시
@@ -79,12 +79,12 @@ gcc main.c smm_object.c smm_database.c -o SMMarble
 
 <br>
 
-## 🛠️ 기술 스택
+## 기술 스택
 
 `C` · 구조체 · 포인터 · Linked List · 파일 입출력 · Data Encapsulation
 
 <br>
 
-## 👤 구현 범위
+## 구현 범위
 
 `smm_object.c`(객체 구조체 정의 및 조작 함수)와 `main.c`(파일 파싱, 플레이어 설정, 게임 흐름 전체)를 직접 구현했습니다. `smm_database.c`는 제공된 base code를 활용했습니다.
